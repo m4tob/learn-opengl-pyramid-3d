@@ -12,12 +12,12 @@ GLWidget::GLWidget() {
     timer->setSingleShot(true);
     connect(timer, SIGNAL(timeout()), this, SLOT(updateGL()));
 
-    pyramidHeight = 45;
-    cubeSize = 1.0f;
+    pyramidHeight = 10;
+    cubeSize = 1;
 
-    angleX = posX = 0.0f;
+    angleX = posX = 0;
     posY = -pyramidHeight/2;
-    posZ = -100 * cubeSize;
+    posZ = -4 * pyramidHeight  * cubeSize;
 
     keyMode = 'R';
     stepRotate = 2 * cubeSize;
@@ -35,19 +35,25 @@ void GLWidget::initializeGL() {
     glShadeModel(GL_SMOOTH); // Enable smooth shading
     qglClearColor(Qt::black); // Set the clear color to a black background
 
-    glClearDepth(1.0f); // Depth buffer setup
+    glClearDepth(1); // Depth buffer setup
     glEnable(GL_DEPTH_TEST); // Enable depth testing
     glDepthFunc(GL_LEQUAL); // Set type of depth test
 
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST); // Really nice perspective calculations
 
-    glEnable(GL_TEXTURE_2D);
-    _textureSand = loadTexture("textures/sand.jpg");
-
+    setupTextures();
     setupLighting();
 
+    drawGrass();
     drawCube();
     drawPyramid();
+}
+
+void GLWidget::setupTextures() {
+    glEnable(GL_TEXTURE_2D);
+    _textureSand = loadTexture("textures/sand.jpg");
+    _textureSky = loadTexture("textures/sky.bmp");
+    _textureGrass = loadTexture("textures/grass.jpg");
 }
 
 GLuint GLWidget::loadTexture(QString fileName) {
@@ -65,14 +71,109 @@ GLuint GLWidget::loadTexture(QString fileName) {
 }
 
 void GLWidget::setupLighting() {
-    GLfloat ambLight[] = {0.3f, 0.3f, 0.3f, 1.0f};
-    GLfloat diffLight[] = {1.0f, 1.0f, 1.0f, 1.0f};
-    GLfloat lightPos[] = {0.0f, 0.0f, 2.0f, 1.0f};
+    GLfloat ambLight[] = {0.3, 0.3, 0.3, 1.0};
+    GLfloat diffLight[] = {1.0, 1.0, 1.0, 1.0};
+    GLfloat lightPos[] = {0.0, 0.0, 2.0, 1.0};
     glLightfv(GL_LIGHT1, GL_AMBIENT, ambLight);
     glLightfv(GL_LIGHT1, GL_DIFFUSE, diffLight);
     glLightfv(GL_LIGHT1, GL_POSITION, lightPos);
     glEnable(GL_LIGHT1);
     glEnable(GL_LIGHTING);
+}
+
+void GLWidget::drawGrass() {
+    grassListIndex = glGenLists(1);
+    glNewList(grassListIndex, GL_COMPILE);
+
+        GLfloat width = 10 * (pyramidHeight * cubeSize * 2);
+
+        glBindTexture(GL_TEXTURE_2D, _textureGrass);
+        glBegin(GL_QUADS);
+            glTexCoord2f(width, width); glVertex3f(-width, cubeSize - 0.01, -width);
+            glTexCoord2f(0, width);     glVertex3f( width, cubeSize - 0.01, -width);
+            glTexCoord2f(0, 0);         glVertex3f( width, cubeSize - 0.01,  width);
+            glTexCoord2f(width, 0);     glVertex3f(-width, cubeSize - 0.01,  width);
+        glEnd();
+
+    glEndList();
+}
+
+void GLWidget::drawCube() {
+    cubeListIndex = glGenLists(1);
+    glNewList(cubeListIndex, GL_COMPILE);
+
+        glBindTexture(GL_TEXTURE_2D, _textureSand);
+        glBegin(GL_QUADS);
+        // Front Face
+        glNormal3f(0, 0, 1);
+        glTexCoord2f(0, 0);                 glVertex3f(-cubeSize, -cubeSize, cubeSize); // Bottom Left Of The Texture and Quad
+        glTexCoord2f(cubeSize, 0);          glVertex3f( cubeSize, -cubeSize, cubeSize); // Bottom Right Of The Texture and Quad
+        glTexCoord2f(cubeSize, cubeSize);   glVertex3f( cubeSize,  cubeSize, cubeSize); // Top Right Of The Texture and Quad
+        glTexCoord2f(0, cubeSize);          glVertex3f(-cubeSize,  cubeSize, cubeSize); // Top Left Of The Texture and Quad
+        // Back Face
+        glNormal3f(0, 0, -1);
+        glTexCoord2f(cubeSize, 0);          glVertex3f(-cubeSize, -cubeSize, -cubeSize); // Bottom Right Of The Texture and Quad
+        glTexCoord2f(cubeSize, cubeSize);   glVertex3f(-cubeSize,  cubeSize, -cubeSize); // Top Right Of The Texture and Quad
+        glTexCoord2f(0, cubeSize);          glVertex3f( cubeSize,  cubeSize, -cubeSize); // Top Left Of The Texture and Quad
+        glTexCoord2f(0, 0);                 glVertex3f( cubeSize, -cubeSize, -cubeSize); // Bottom Left Of The Texture and Quad
+        // Top Face
+        glNormal3f(0, 1, 0);
+        glTexCoord2f(0, cubeSize);          glVertex3f(-cubeSize, cubeSize, -cubeSize); // Top Left Of The Texture and Quad
+        glTexCoord2f(0, 0);                 glVertex3f(-cubeSize, cubeSize,  cubeSize); // Bottom Left Of The Texture and Quad
+        glTexCoord2f(cubeSize, 0);          glVertex3f( cubeSize, cubeSize,  cubeSize); // Bottom Right Of The Texture and Quad
+        glTexCoord2f(cubeSize, cubeSize);   glVertex3f( cubeSize, cubeSize, -cubeSize); // Top Right Of The Texture and Quad
+        // Bottom Face
+        glNormal3f(0, -1, 0);
+        glTexCoord2f(cubeSize, cubeSize);   glVertex3f(-cubeSize, -cubeSize, -cubeSize); // Top Right Of The Texture and Quad
+        glTexCoord2f(0, cubeSize);          glVertex3f( cubeSize, -cubeSize, -cubeSize); // Top Left Of The Texture and Quad
+        glTexCoord2f(0, 0);                 glVertex3f( cubeSize, -cubeSize,  cubeSize); // Bottom Left Of The Texture and Quad
+        glTexCoord2f(cubeSize, 0);          glVertex3f(-cubeSize, -cubeSize,  cubeSize); // Bottom Right Of The Texture and Quad
+        // Right face
+        glNormal3f(1, 0, 0);
+        glTexCoord2f(cubeSize, 0);          glVertex3f( cubeSize, -cubeSize, -cubeSize); // Bottom Right Of The Texture and Quad
+        glTexCoord2f(cubeSize, cubeSize);   glVertex3f( cubeSize,  cubeSize, -cubeSize); // Top Right Of The Texture and Quad
+        glTexCoord2f(0, cubeSize);          glVertex3f( cubeSize,  cubeSize,  cubeSize); // Top Left Of The Texture and Quad
+        glTexCoord2f(0, 0);                 glVertex3f( cubeSize, -cubeSize, cubeSize); // Bottom Left Of The Texture and Quad
+        // Left Face
+        glNormal3f(-1, 0, 0);
+        glTexCoord2f(0, 0);                 glVertex3f(-cubeSize, -cubeSize, -cubeSize); // Bottom Left Of The Texture and Quad
+        glTexCoord2f(cubeSize, 0);          glVertex3f(-cubeSize, -cubeSize,  cubeSize); // Bottom Right Of The Texture and Quad
+        glTexCoord2f(cubeSize, cubeSize);   glVertex3f(-cubeSize,  cubeSize,  cubeSize); // Top Right Of The Texture and Quad
+        glTexCoord2f(0, cubeSize);          glVertex3f(-cubeSize,  cubeSize, -cubeSize); // Top Left Of The Texture and Quad
+        glEnd();
+
+    glEndList();
+}
+
+void GLWidget::drawPyramid() {
+    pyramidListIndex = glGenLists(1);
+    glNewList(pyramidListIndex, GL_COMPILE);
+        GLint size;
+        GLint offset = 2 * cubeSize;
+
+        // A primeira linha é considerada o topo da pirâmide
+        for(GLint row = 0; row < pyramidHeight; row++) {
+            size = 1 + (row * 2); // Número de elementos em cada eixo
+
+            glPushMatrix();
+                glTranslatef(0, (pyramidHeight - row) * offset, 0); // Desce uma linha da pirâmide
+                glTranslatef(-(row * offset), 0, 0); // Posiciona a origem no ponto mais extremo de X
+
+                for(GLint x = 0; x < size; x++) {
+                    glPushMatrix();
+                        glTranslatef(x * offset, 0, 0); // Move a origem para o próximo ponto de X
+                        glTranslatef(0, 0, -(row * offset)); // Posiciona a origem no ponto mais extremo de Z
+
+                        for(GLint z = 0; z < size; z++) {
+                            glTranslatef(0, 0, offset);  // Move a origem para o próximo ponto de Z
+                            glCallList(cubeListIndex);
+                        }
+                    glPopMatrix();
+                }
+            glPopMatrix();
+        }
+
+    glEndList();
 }
 
 // This is called when the OpenGL window is resized
@@ -86,7 +187,7 @@ void GLWidget::resizeGL(int width, int height) {
     glMatrixMode(GL_PROJECTION); // Select projection matrix
     glLoadIdentity(); // Reset projection matrix
 
-    gluPerspective(100.0f, static_cast<GLfloat>(width)/height, 0.1f, 100.0f); // Calculate aspect ratio
+    gluPerspective(100, static_cast<GLfloat>(width)/height, 0.1, 100); // Calculate aspect ratio
 
     glMatrixMode(GL_MODELVIEW); // Select modelview matrix
     glLoadIdentity(); // Reset modelview matrix
@@ -95,91 +196,31 @@ void GLWidget::resizeGL(int width, int height) {
 // OpenGL painting code goes here
 void GLWidget::paintGL() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+    glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    glTranslatef(posX, posY, posZ);
-    glRotatef(angleX, 0.0f, 1.0f, 0.0f);
 
+    // paintSky();
+
+    glTranslatef(posX, posY, posZ);
+    glRotatef(angleX, 0, 1, 0);
+    glRotatef(angleY, 1, 0, 0);
+
+    glCallList(grassListIndex);
     glCallList(pyramidListIndex);
 
     // Framerate control
     timer->start(20);
 }
 
-void GLWidget::drawCube() {
-    cubeListIndex = glGenLists(1);
-    glNewList(cubeListIndex, GL_COMPILE);
-        glBindTexture(GL_TEXTURE_2D, _textureSand);
-        glBegin(GL_QUADS);
-        // Front Face
-        glNormal3f(0.0f, 0.0f, 1.0f);
-        glTexCoord2f(0.0f, 0.0f); glVertex3f(-cubeSize, -cubeSize, cubeSize); // Bottom Left Of The Texture and Quad
-        glTexCoord2f(cubeSize, 0.0f); glVertex3f( cubeSize, -cubeSize, cubeSize); // Bottom Right Of The Texture and Quad
-        glTexCoord2f(cubeSize, cubeSize); glVertex3f( cubeSize, cubeSize, cubeSize); // Top Right Of The Texture and Quad
-        glTexCoord2f(0.0f, cubeSize); glVertex3f(-cubeSize, cubeSize, cubeSize); // Top Left Of The Texture and Quad
-        // Back Face
-        glNormal3f(0.0f, 0.0f, -1.0f);
-        glTexCoord2f(cubeSize, 0.0f); glVertex3f(-cubeSize, -cubeSize, -cubeSize); // Bottom Right Of The Texture and Quad
-        glTexCoord2f(cubeSize, cubeSize); glVertex3f(-cubeSize, cubeSize, -cubeSize); // Top Right Of The Texture and Quad
-        glTexCoord2f(0.0f, cubeSize); glVertex3f( cubeSize, cubeSize, -cubeSize); // Top Left Of The Texture and Quad
-        glTexCoord2f(0.0f, 0.0f); glVertex3f( cubeSize, -cubeSize, -cubeSize); // Bottom Left Of The Texture and Quad
-        // Top Face
-        glNormal3f(0.0f, 1.0f, 0.0f);
-        glTexCoord2f(0.0f, cubeSize); glVertex3f(-cubeSize, cubeSize, -cubeSize); // Top Left Of The Texture and Quad
-        glTexCoord2f(0.0f, 0.0f); glVertex3f(-cubeSize, cubeSize, cubeSize); // Bottom Left Of The Texture and Quad
-        glTexCoord2f(cubeSize, 0.0f); glVertex3f( cubeSize, cubeSize, cubeSize); // Bottom Right Of The Texture and Quad
-        glTexCoord2f(cubeSize, cubeSize); glVertex3f( cubeSize, cubeSize, -cubeSize); // Top Right Of The Texture and Quad
-        // Bottom Face
-        glNormal3f(0.0f, -1.0f, 0.0f);
-        glTexCoord2f(cubeSize, cubeSize); glVertex3f(-cubeSize, -cubeSize, -cubeSize); // Top Right Of The Texture and Quad
-        glTexCoord2f(0.0f, cubeSize); glVertex3f( cubeSize, -cubeSize, -cubeSize); // Top Left Of The Texture and Quad
-        glTexCoord2f(0.0f, 0.0f); glVertex3f( cubeSize, -cubeSize, cubeSize); // Bottom Left Of The Texture and Quad
-        glTexCoord2f(cubeSize, 0.0f); glVertex3f(-cubeSize, -cubeSize, cubeSize); // Bottom Right Of The Texture and Quad
-        // Right face
-        glNormal3f(1.0f, 0.0f, 0.0f);
-        glTexCoord2f(cubeSize, 0.0f); glVertex3f( cubeSize, -cubeSize, -cubeSize); // Bottom Right Of The Texture and Quad
-        glTexCoord2f(cubeSize, cubeSize); glVertex3f( cubeSize, cubeSize, -cubeSize); // Top Right Of The Texture and Quad
-        glTexCoord2f(0.0f, cubeSize); glVertex3f( cubeSize, cubeSize, cubeSize); // Top Left Of The Texture and Quad
-        glTexCoord2f(0.0f, 0.0f); glVertex3f( cubeSize, -cubeSize, cubeSize); // Bottom Left Of The Texture and Quad
-        // Left Face
-        glNormal3f(-1.0f, 0.0f, 0.0f);
-        glTexCoord2f(0.0f, 0.0f); glVertex3f(-cubeSize, -cubeSize, -cubeSize); // Bottom Left Of The Texture and Quad
-        glTexCoord2f(cubeSize, 0.0f); glVertex3f(-cubeSize, -cubeSize, cubeSize); // Bottom Right Of The Texture and Quad
-        glTexCoord2f(cubeSize, cubeSize); glVertex3f(-cubeSize, cubeSize, cubeSize); // Top Right Of The Texture and Quad
-        glTexCoord2f(0.0f, cubeSize); glVertex3f(-cubeSize, cubeSize, -cubeSize); // Top Left Of The Texture and Quad
-        glEnd();
-    glEndList();
-}
-
-void GLWidget::drawPyramid() {
-    pyramidListIndex = glGenLists(1);
-    glNewList(pyramidListIndex, GL_COMPILE);
-        GLuint size;
-        GLuint offset = 2 * cubeSize;
-
-        // A primeira linha é considerada o topo da pirâmide
-        for(GLuint row = 0; row < pyramidHeight; row++) {
-            size = 1 + (row * 2); // Número de elementos em cada eixo
-
-            glPushMatrix();
-                glTranslatef(0.0f, (pyramidHeight - row) * offset, 0.0f); // Desce uma linha da pirâmide
-                glTranslatef(-(row * offset), 0.0f, 0.0f); // Posiciona a origem no ponto mais extremo de X
-
-                for(GLuint x = 0; x < size; x++) {
-                    glPushMatrix();
-                        glTranslatef(x * offset, 0.0f, 0.0f); // Move a origem para o próximo ponto de X
-                        glTranslatef(0.0f, 0.0f, -(row * offset)); // Posiciona a origem no ponto mais extremo de Z
-
-                        for(GLuint z = 0; z < size; z++) {
-                            glTranslatef(0.0f, 0.0f, offset);  // Move a origem para o próximo ponto de Z
-                            glCallList(cubeListIndex);
-                        }
-                    glPopMatrix();
-                }
-            glPopMatrix();
-        }
-
-    glEndList();
+void GLWidget::paintSky() {
+    glBindTexture(GL_TEXTURE_2D, _textureSky);
+    glTranslatef(0,0,-10);
+    glBegin(GL_QUADS);
+        glTexCoord3f(0.0,1.0,0.1);  glVertex3f(-100,50,-100);
+        glTexCoord3f(1.0,1.0,0.1);  glVertex3f(100,50,-100);
+        glTexCoord3f(1.0,0.0,0.1);  glVertex3f(100,-10,-100);
+        glTexCoord3f(0.0,0.0,0.1);  glVertex3f(-100,-10,-100);
+    glEnd();
 }
 
 void GLWidget::keyPressEvent(QKeyEvent *event) {
@@ -197,14 +238,20 @@ void GLWidget::keyPressEvent(QKeyEvent *event) {
             break;
 
         case Qt::Key_Up:
-            if(keyMode == 'T') { // Translação
-                posZ -= stepTranslate;
+            if(keyMode == 'R') { // Rotação
+                angleY += stepRotate;
+                angleY = angleY > 360 ? angleY - 360 : angleY;
+            } else if(keyMode == 'T') { // Translação
+                posZ += stepTranslate;
             }
             break;
 
         case Qt::Key_Down:
-            if(keyMode == 'T') { // Translação
-                posZ += stepTranslate;
+            if(keyMode == 'R') { // Rotação
+                angleY -= stepRotate;
+                angleY = angleY < 0 ? angleY + 360 : angleY;
+            } else if(keyMode == 'T') { // Translação
+                posZ -= stepTranslate;
             }
             break;
 

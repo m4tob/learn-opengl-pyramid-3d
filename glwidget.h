@@ -22,21 +22,24 @@ protected:
     void changeEvent(QEvent *event);
 
 private:
-    void setupLighting();
+    void setupTextures();
     GLuint loadTexture(QString image);
+    void setupLighting();
+    void paintSky();
+    void drawGrass();
     void drawCube();
     void drawPyramid();
 
-    GLuint _textureSand;
-    GLuint cubeListIndex, pyramidListIndex;
+    GLuint _textureSky, _textureGrass, _textureSand;
+    GLuint grassListIndex, cubeListIndex, pyramidListIndex;
     QTimer *timer;
 
-    GLuint pyramidHeight;
+    GLint pyramidHeight;
     GLfloat cubeSize;
 
     GLchar keyMode;
     GLfloat stepRotate, stepTranslate;
-    GLfloat angleX, posX, posY, posZ;
+    GLfloat angleX, angleY, posX, posY, posZ;
 };
 
 #endif // GLWIDGET_H
