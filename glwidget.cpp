@@ -45,6 +45,9 @@ void GLWidget::initializeGL() {
     _textureSand = loadTexture("textures/sand.jpg");
 
     setupLighting();
+
+    drawCube();
+    drawPyramid();
 }
 
 GLuint GLWidget::loadTexture(QString fileName) {
@@ -97,45 +100,16 @@ void GLWidget::paintGL() {
     glTranslatef(posX, posY, posZ);
     glRotatef(angleX, 0.0f, 1.0f, 0.0f);
 
-    //glCallList(cubeListIndex);
-    drawPyramid();
+    glCallList(pyramidListIndex);
 
     // Framerate control
     timer->start(20);
 }
 
-void GLWidget::drawPyramid() {
-    GLint size;
-    GLint offset = 2 * cubeSize;
-
-    // A primeira linha é considerada o topo da pirâmide
-    for(GLint row = 0; row < pyramidHeight; row++) {
-        size = 1 + (row * 2); // Número de elementos em cada eixo
-
-        glPushMatrix();
-            glTranslatef(0.0f, (pyramidHeight - row) * offset, 0.0f); // Desce uma linha da pirâmide
-
-            glTranslatef(-(row * offset), 0.0f, 0.0f); // Posiciona a origem no ponto mais extremo de X
-            for(GLint x = 0; x < size; x++) {
-                glPushMatrix();
-                    glTranslatef(x * offset, 0.0f, 0.0f); // Move a origem para o próximo ponto de X
-
-                    glTranslatef(0.0f, 0.0f, -(row * offset)); // Posiciona a origem no ponto mais extremo de Z
-                    for(GLint z = 0; z < size; z++) {
-                        glTranslatef(0.0f, 0.0f, offset);  // Move a origem para o próximo ponto de Z
-                        drawCube();
-                    }
-                glPopMatrix();
-            }
-        glPopMatrix();
-    }
-}
-
 void GLWidget::drawCube() {
-    glBindTexture(GL_TEXTURE_2D, _textureSand);
-
-    /*GLuint cubeListIndex = glGenLists(1);
-    glNewList(cubeListIndex, GL_COMPILE);*/
+    cubeListIndex = glGenLists(1);
+    glNewList(cubeListIndex, GL_COMPILE);
+        glBindTexture(GL_TEXTURE_2D, _textureSand);
         glBegin(GL_QUADS);
         // Front Face
         glNormal3f(0.0f, 0.0f, 1.0f);
@@ -174,7 +148,38 @@ void GLWidget::drawCube() {
         glTexCoord2f(cubeSize, cubeSize); glVertex3f(-cubeSize, cubeSize, cubeSize); // Top Right Of The Texture and Quad
         glTexCoord2f(0.0f, cubeSize); glVertex3f(-cubeSize, cubeSize, -cubeSize); // Top Left Of The Texture and Quad
         glEnd();
-    //glEndList();
+    glEndList();
+}
+
+void GLWidget::drawPyramid() {
+    pyramidListIndex = glGenLists(1);
+    glNewList(pyramidListIndex, GL_COMPILE);
+        GLuint size;
+        GLuint offset = 2 * cubeSize;
+
+        // A primeira linha é considerada o topo da pirâmide
+        for(GLuint row = 0; row < pyramidHeight; row++) {
+            size = 1 + (row * 2); // Número de elementos em cada eixo
+
+            glPushMatrix();
+                glTranslatef(0.0f, (pyramidHeight - row) * offset, 0.0f); // Desce uma linha da pirâmide
+                glTranslatef(-(row * offset), 0.0f, 0.0f); // Posiciona a origem no ponto mais extremo de X
+
+                for(GLuint x = 0; x < size; x++) {
+                    glPushMatrix();
+                        glTranslatef(x * offset, 0.0f, 0.0f); // Move a origem para o próximo ponto de X
+                        glTranslatef(0.0f, 0.0f, -(row * offset)); // Posiciona a origem no ponto mais extremo de Z
+
+                        for(GLuint z = 0; z < size; z++) {
+                            glTranslatef(0.0f, 0.0f, offset);  // Move a origem para o próximo ponto de Z
+                            glCallList(cubeListIndex);
+                        }
+                    glPopMatrix();
+                }
+            glPopMatrix();
+        }
+
+    glEndList();
 }
 
 void GLWidget::keyPressEvent(QKeyEvent *event) {
