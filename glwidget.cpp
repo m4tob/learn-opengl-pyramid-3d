@@ -37,18 +37,18 @@ GLWidget::GLWidget() {
     timer->setSingleShot(true);
     connect(timer, SIGNAL(timeout()), this, SLOT(updateGL()));
 
-    pyramidHeight = 45;
-    cubeSize = 1;
+    pyramidHeight = 45; // Altura da pirâmide em quantidade de blocos
+    cubeSize = 1; // Dimensão do bloco 1 x 1 x 1
 
-    angleX = 20;
-    angleY = 0;
-    posX = 0;
-    posY = -pyramidHeight/2;
-    posZ = -6 * pyramidHeight  * cubeSize;
+    angleX = 20; // Ângulo inicial no eixo X
+    angleY = 0; // Ângulo inicial no eixo Y
+    posX = 0; // Posição inicial no eixo X
+    posY = -pyramidHeight/2; // Posição inicial no eixo Y (A o Centro da pirâmide é posicionado no centro da tela)
+    posZ = -6 * pyramidHeight  * cubeSize; // Posição inicial no eixo Z (Afasta a pirâmide permitindo visualizá-la completamente)
 
-    keyMode = 'R';
-    stepRotate = 2 * cubeSize;
-    stepTranslate = cubeSize * 5;
+    keyMode = 'R'; // Inicia a interação no modo de rotação
+    stepRotate = 2 * cubeSize; // Define o passo de rotação
+    stepTranslate = cubeSize * 5; // Define o passo de translação
 }
 
 // Destructor
@@ -75,12 +75,14 @@ void GLWidget::initializeGL() {
     drawPyramid();
 }
 
+// Carrega e configura as texturas que serão utilizadas no projeto
 void GLWidget::setupTextures() {
     glEnable(GL_TEXTURE_2D);
     _textureSand = loadTexture("textures/sand.jpg");
     _textureGrass = loadTexture("textures/grass.jpg");
 }
 
+// Carrega uma determinada textura a partir do nome do arquivo
 GLuint GLWidget::loadTexture(QString fileName) {
     QImage img = convertToGLFormat(QImage(fileName));
 
@@ -95,6 +97,7 @@ GLuint GLWidget::loadTexture(QString fileName) {
     return textureId;
 }
 
+// Realiza a configuração de iluminação e sombreamento
 void GLWidget::setupLighting() {
     glShadeModel(GL_SMOOTH);
     glEnable(GL_LIGHTING);
@@ -108,11 +111,13 @@ void GLWidget::setupLighting() {
     glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
 }
 
+// Constrói a DisplayList responsável por gerar a grama
 void GLWidget::drawGrass() {
     grassListIndex = glGenLists(1);
     glNewList(grassListIndex, GL_COMPILE);
 
-        GLfloat width = 10 * (pyramidHeight * cubeSize * 2);
+        // Define a largura (e comprimento) da grama como sendo 20 vezes a largura da pirâmide
+        GLfloat width = 20 * (pyramidHeight * cubeSize);
 
         glBindTexture(GL_TEXTURE_2D, _textureGrass);
         glBegin(GL_QUADS);
@@ -125,6 +130,7 @@ void GLWidget::drawGrass() {
     glEndList();
 }
 
+// Constrói a DisplayList responsável por gerar um dos cubos que irá compor a pirâmide
 void GLWidget::drawCube() {
     cubeListIndex = glGenLists(1);
     glNewList(cubeListIndex, GL_COMPILE);
@@ -172,32 +178,36 @@ void GLWidget::drawCube() {
     glEndList();
 }
 
+// Constrói a DisplayList responsável por gerar a pirâmide.
+// A pirâmide é construída de cima para baixo (começando com o cubo do topo)
+// e da esquerda (-X) para a direita (+X) no eixo X e da frente (-Z) para o fundo (+Z)
+// do eixo Z.
 void GLWidget::drawPyramid() {
     pyramidListIndex = glGenLists(1);
     glNewList(pyramidListIndex, GL_COMPILE);
-        GLint size;
-        GLint offset = 2 * cubeSize;
+        GLint size; // Número de cubos em uma linha (1 cubo na primeira, 3 na segunda, 5 na terceira, etc)
+        GLint offset = 2 * cubeSize; // Offset entre um cubo e outro.
 
         // A primeira linha é considerada o topo da pirâmide
         for(GLint row = 0; row < pyramidHeight; row++) {
-            size = 1 + (row * 2); // Número de elementos em cada eixo
+            size = 1 + (row * 2); // cubo central, mais 2*row, sendo cada 1 * row para um dos lados do cubo central
 
-            glPushMatrix();
+            glPushMatrix(); // Adiciona a matriz na pilha para não precisar manipular os valores de volta.
                 glTranslatef(0, (pyramidHeight - row) * offset, 0); // Desce uma linha da pirâmide
                 glTranslatef(-(row * offset), 0, 0); // Posiciona a origem no ponto mais extremo de X
 
                 for(GLint x = 0; x < size; x++) {
-                    glPushMatrix();
+                    glPushMatrix(); // Armazena a matriz com a configuração atual (X e Y configurados)
                         glTranslatef(x * offset, 0, 0); // Move a origem para o próximo ponto de X
                         glTranslatef(0, 0, -(row * offset)); // Posiciona a origem no ponto mais extremo de Z
 
                         for(GLint z = 0; z < size; z++) {
                             glTranslatef(0, 0, offset);  // Move a origem para o próximo ponto de Z
-                            glCallList(cubeListIndex);
+                            glCallList(cubeListIndex); // Dsenha um cubo a partir da DisplayList
                         }
-                    glPopMatrix();
+                    glPopMatrix(); // Após preencher toda a linha do eixo Z, volta para o início com X e Y configurados
                 }
-            glPopMatrix();
+            glPopMatrix(); // Volta para a matriz na situação do início da função
         }
 
     glEndList();
@@ -226,12 +236,12 @@ void GLWidget::paintGL() {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    glTranslatef(posX, posY, posZ);
-    glRotatef(angleX, 0, 1, 0);
-    glRotatef(angleY, 1, 0, 0);
+    glTranslatef(posX, posY, posZ); // Posiciona a pirâmide a partir dos parâmetros de interação
+    glRotatef(angleX, 0, 1, 0); // Realiza a rotação no eixo X, a partir do parâmetro de interação
+    glRotatef(angleY, 1, 0, 0); // Realiza a rotação no eixo Y, a partir do parâmetro de interação
 
-    glCallList(grassListIndex);
-    glCallList(pyramidListIndex);
+    glCallList(grassListIndex); // Dsenha a grama a partir de sua DisplayList
+    glCallList(pyramidListIndex); // Dsenha a pirâmide a partir de sua DisplayList
 
     // Framerate control
     timer->start(20);
