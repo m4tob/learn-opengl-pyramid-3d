@@ -12,16 +12,18 @@ GLWidget::GLWidget() {
     timer->setSingleShot(true);
     connect(timer, SIGNAL(timeout()), this, SLOT(updateGL()));
 
-    pyramidHeight = 10;
+    pyramidHeight = 45;
     cubeSize = 1;
 
-    angleX = posX = 0;
+    angleX = 20;
+    angleY = 0;
+    posX = 0;
     posY = -pyramidHeight/2;
-    posZ = -4 * pyramidHeight  * cubeSize;
+    posZ = -6 * pyramidHeight  * cubeSize;
 
     keyMode = 'R';
     stepRotate = 2 * cubeSize;
-    stepTranslate = cubeSize;
+    stepTranslate = cubeSize * 5;
 }
 
 // Destructor
@@ -32,7 +34,6 @@ GLWidget::~GLWidget() {
 
 // Initialize OpenGL
 void GLWidget::initializeGL() {
-    glShadeModel(GL_SMOOTH); // Enable smooth shading
     qglClearColor(Qt::black); // Set the clear color to a black background
 
     glClearDepth(1); // Depth buffer setup
@@ -52,7 +53,6 @@ void GLWidget::initializeGL() {
 void GLWidget::setupTextures() {
     glEnable(GL_TEXTURE_2D);
     _textureSand = loadTexture("textures/sand.jpg");
-    _textureSky = loadTexture("textures/sky.bmp");
     _textureGrass = loadTexture("textures/grass.jpg");
 }
 
@@ -71,14 +71,16 @@ GLuint GLWidget::loadTexture(QString fileName) {
 }
 
 void GLWidget::setupLighting() {
-    GLfloat ambLight[] = {0.3, 0.3, 0.3, 1.0};
-    GLfloat diffLight[] = {1.0, 1.0, 1.0, 1.0};
-    GLfloat lightPos[] = {0.0, 0.0, 2.0, 1.0};
-    glLightfv(GL_LIGHT1, GL_AMBIENT, ambLight);
-    glLightfv(GL_LIGHT1, GL_DIFFUSE, diffLight);
-    glLightfv(GL_LIGHT1, GL_POSITION, lightPos);
-    glEnable(GL_LIGHT1);
+    glShadeModel(GL_SMOOTH);
     glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+
+    GLfloat ambLight[] = {1.0, 1.0, 1.0, 1.0};
+    GLfloat diffLight[] = {1.0, 1.0, 1.0, 1.0};
+    GLfloat lightPos[] = {0.0, 5.0, 5.0, 1.0};
+    glLightfv(GL_LIGHT0, GL_AMBIENT, ambLight);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffLight);
+    glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
 }
 
 void GLWidget::drawGrass() {
@@ -187,7 +189,7 @@ void GLWidget::resizeGL(int width, int height) {
     glMatrixMode(GL_PROJECTION); // Select projection matrix
     glLoadIdentity(); // Reset projection matrix
 
-    gluPerspective(100, static_cast<GLfloat>(width)/height, 0.1, 100); // Calculate aspect ratio
+    gluPerspective(45, static_cast<GLfloat>(width)/height, 0.1, 1000); // Calculate aspect ratio
 
     glMatrixMode(GL_MODELVIEW); // Select modelview matrix
     glLoadIdentity(); // Reset modelview matrix
@@ -199,8 +201,6 @@ void GLWidget::paintGL() {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    // paintSky();
-
     glTranslatef(posX, posY, posZ);
     glRotatef(angleX, 0, 1, 0);
     glRotatef(angleY, 1, 0, 0);
@@ -210,17 +210,6 @@ void GLWidget::paintGL() {
 
     // Framerate control
     timer->start(20);
-}
-
-void GLWidget::paintSky() {
-    glBindTexture(GL_TEXTURE_2D, _textureSky);
-    glTranslatef(0,0,-10);
-    glBegin(GL_QUADS);
-        glTexCoord3f(0.0,1.0,0.1);  glVertex3f(-100,50,-100);
-        glTexCoord3f(1.0,1.0,0.1);  glVertex3f(100,50,-100);
-        glTexCoord3f(1.0,0.0,0.1);  glVertex3f(100,-10,-100);
-        glTexCoord3f(0.0,0.0,0.1);  glVertex3f(-100,-10,-100);
-    glEnd();
 }
 
 void GLWidget::keyPressEvent(QKeyEvent *event) {

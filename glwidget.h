@@ -30,7 +30,7 @@ private:
     void drawCube();
     void drawPyramid();
 
-    GLuint _textureSky, _textureGrass, _textureSand;
+    GLuint _textureGrass, _textureSand;
     GLuint grassListIndex, cubeListIndex, pyramidListIndex;
     QTimer *timer;
 
