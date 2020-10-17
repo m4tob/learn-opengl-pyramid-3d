@@ -31,7 +31,7 @@
 
 // Constructor
 GLWidget::GLWidget() {
-    setWindowTitle("Avaliação 2 - Pirâmide do Minecraft");
+    setWindowTitle("2ª Avaliação - Pirâmide do Minecraft");
 
     timer = new QTimer(this);
     timer->setSingleShot(true);
