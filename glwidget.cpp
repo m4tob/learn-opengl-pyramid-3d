@@ -1,3 +1,28 @@
+/*
+ * UNIVERSIDADE ESTADUAL DE FEIRA DE SANTANA - UEFS
+ * Engenharia da Computação
+ * TEC431 - Computação Gráfica
+ *
+ * 2ª Avaliação - 2019.2E
+ *
+ * Alunos:
+ *      Matheus Oliveira Borges <matob@live.com>
+ *      Luiz Ricardo Inês de Souza <lzricardo.ecomp@gmail.com>
+ *
+ * -------------------------------------------------------------------------------
+ *
+ * ============================================================================
+ * ===============================  INSTRUÇÕES  ===============================
+ * ============================================================================
+ *
+ * Para rotacionar é necessário pressionar a tecla R (ativando o modo de rotação)
+ * e em seguida, utilizar as teclas direcionais.
+ *
+ * Para transladar, pressione a tecla T (ativando o modo de translação) e, também
+ * utilizando as teclas direcionais, pode-se mover o modelo.
+ *
+ */
+
 #include "glwidget.h"
 #include <GL/gl.h>
 #include <GL/glu.h>
