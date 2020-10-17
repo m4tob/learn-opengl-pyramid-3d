@@ -22,22 +22,23 @@ protected:
     void changeEvent(QEvent *event);
 
 private:
+    void setupLight();
     GLuint loadTexture(QString image);
+    void drawPyramid();
     void drawCube();
+
+    int pyramidHeight;
+    GLfloat cubeSize;
 
     char keyMode;
 
-    GLfloat angleX, angleY, posX, posY;
+    GLfloat angleX, posX, posY, posZ;
     GLfloat stepRotate, stepTranslate;
-    GLfloat z;
 
+    GLuint cubeListIndex;
     GLuint _textureSand;
 
     QTimer *timer;
-    GLuint filter, texture[3];
-    GLfloat xrot, yrot, xspeed, yspeed;
-    bool lightChanged, filterChanged;
-    int changeAmount;
     QHash<GLuint, QString> filterName;
 };
 

@@ -12,15 +12,21 @@ GLWidget::GLWidget() {
     timer->setSingleShot(true);
     connect(timer, SIGNAL(timeout()), this, SLOT(updateGL()));
 
+    pyramidHeight = 45;
+    cubeSize = 1.0f;
+
+    angleX = posX = 0.0f;
+    posY = -pyramidHeight/2;
+    posZ = -100 * cubeSize;
+
     keyMode = 'R';
-    angleX = angleY = posX = posY = 0.0f;
-    stepRotate = 2.0f;
-    stepTranslate = 0.2f;
-    z = -5.0f;
+    stepRotate = 2 * cubeSize;
+    stepTranslate = cubeSize;
 }
 
 // Destructor
 GLWidget::~GLWidget() {
+    glDeleteLists(cubeListIndex, 1);
     glDeleteTextures(1, &_textureSand);
 }
 
@@ -38,7 +44,24 @@ void GLWidget::initializeGL() {
     glEnable(GL_TEXTURE_2D);
     _textureSand = loadTexture("textures/sand.jpg");
 
-    // Set up lighting
+    setupLighting();
+}
+
+GLuint GLWidget::loadTexture(QString fileName) {
+    QImage img = convertToGLFormat(QImage(fileName));
+
+    // Texture using linear filter
+    GLuint textureId;
+    glGenTextures(1, &textureId);
+    glBindTexture(GL_TEXTURE_2D, textureId);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, 3, img.width(), img.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, img.bits());
+
+    return textureId;
+}
+
+void GLWidget::setupLighting() {
     GLfloat ambLight[] = {0.3f, 0.3f, 0.3f, 1.0f};
     GLfloat diffLight[] = {1.0f, 1.0f, 1.0f, 1.0f};
     GLfloat lightPos[] = {0.0f, 0.0f, 2.0f, 1.0f};
@@ -60,7 +83,7 @@ void GLWidget::resizeGL(int width, int height) {
     glMatrixMode(GL_PROJECTION); // Select projection matrix
     glLoadIdentity(); // Reset projection matrix
 
-    gluPerspective(45.0f, static_cast<GLfloat>(width)/height, 0.1f, 100.0f); // Calculate aspect ratio
+    gluPerspective(100.0f, static_cast<GLfloat>(width)/height, 0.1f, 100.0f); // Calculate aspect ratio
 
     glMatrixMode(GL_MODELVIEW); // Select modelview matrix
     glLoadIdentity(); // Reset modelview matrix
@@ -68,19 +91,90 @@ void GLWidget::resizeGL(int width, int height) {
 
 // OpenGL painting code goes here
 void GLWidget::paintGL() {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear screen and depth buffer
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glLoadIdentity(); // Reset current modelview matrix
-    glTranslatef(0.0f, 0.0f, z); // Move into the screen
-    glTranslatef(posX, 0.0f, 0.0f); // Move into the screen
-    glTranslatef(0.0f, posY, 0.0f); // Move into the screen
-    glRotatef(angleX, 0.0f, 1.0f, 0.0f); // Rotate on Y-axis
-    glRotatef(angleY, 1.0f, 0.0f, 0.0f); // Rotate on X-axis
+    glLoadIdentity();
+    glTranslatef(posX, posY, posZ);
+    glRotatef(angleX, 0.0f, 1.0f, 0.0f);
 
-    drawCube();
+    //glCallList(cubeListIndex);
+    drawPyramid();
 
     // Framerate control
     timer->start(20);
+}
+
+void GLWidget::drawPyramid() {
+    GLint size;
+    GLint offset = 2 * cubeSize;
+
+    // A primeira linha é considerada o topo da pirâmide
+    for(GLint row = 0; row < pyramidHeight; row++) {
+        size = 1 + (row * 2); // Número de elementos em cada eixo
+
+        glPushMatrix();
+            glTranslatef(0.0f, (pyramidHeight - row) * offset, 0.0f); // Desce uma linha da pirâmide
+
+            glTranslatef(-(row * offset), 0.0f, 0.0f); // Posiciona a origem no ponto mais extremo de X
+            for(GLint x = 0; x < size; x++) {
+                glPushMatrix();
+                    glTranslatef(x * offset, 0.0f, 0.0f); // Move a origem para o próximo ponto de X
+
+                    glTranslatef(0.0f, 0.0f, -(row * offset)); // Posiciona a origem no ponto mais extremo de Z
+                    for(GLint z = 0; z < size; z++) {
+                        glTranslatef(0.0f, 0.0f, offset);  // Move a origem para o próximo ponto de Z
+                        drawCube();
+                    }
+                glPopMatrix();
+            }
+        glPopMatrix();
+    }
+}
+
+void GLWidget::drawCube() {
+    glBindTexture(GL_TEXTURE_2D, _textureSand);
+
+    /*GLuint cubeListIndex = glGenLists(1);
+    glNewList(cubeListIndex, GL_COMPILE);*/
+        glBegin(GL_QUADS);
+        // Front Face
+        glNormal3f(0.0f, 0.0f, 1.0f);
+        glTexCoord2f(0.0f, 0.0f); glVertex3f(-cubeSize, -cubeSize, cubeSize); // Bottom Left Of The Texture and Quad
+        glTexCoord2f(cubeSize, 0.0f); glVertex3f( cubeSize, -cubeSize, cubeSize); // Bottom Right Of The Texture and Quad
+        glTexCoord2f(cubeSize, cubeSize); glVertex3f( cubeSize, cubeSize, cubeSize); // Top Right Of The Texture and Quad
+        glTexCoord2f(0.0f, cubeSize); glVertex3f(-cubeSize, cubeSize, cubeSize); // Top Left Of The Texture and Quad
+        // Back Face
+        glNormal3f(0.0f, 0.0f, -1.0f);
+        glTexCoord2f(cubeSize, 0.0f); glVertex3f(-cubeSize, -cubeSize, -cubeSize); // Bottom Right Of The Texture and Quad
+        glTexCoord2f(cubeSize, cubeSize); glVertex3f(-cubeSize, cubeSize, -cubeSize); // Top Right Of The Texture and Quad
+        glTexCoord2f(0.0f, cubeSize); glVertex3f( cubeSize, cubeSize, -cubeSize); // Top Left Of The Texture and Quad
+        glTexCoord2f(0.0f, 0.0f); glVertex3f( cubeSize, -cubeSize, -cubeSize); // Bottom Left Of The Texture and Quad
+        // Top Face
+        glNormal3f(0.0f, 1.0f, 0.0f);
+        glTexCoord2f(0.0f, cubeSize); glVertex3f(-cubeSize, cubeSize, -cubeSize); // Top Left Of The Texture and Quad
+        glTexCoord2f(0.0f, 0.0f); glVertex3f(-cubeSize, cubeSize, cubeSize); // Bottom Left Of The Texture and Quad
+        glTexCoord2f(cubeSize, 0.0f); glVertex3f( cubeSize, cubeSize, cubeSize); // Bottom Right Of The Texture and Quad
+        glTexCoord2f(cubeSize, cubeSize); glVertex3f( cubeSize, cubeSize, -cubeSize); // Top Right Of The Texture and Quad
+        // Bottom Face
+        glNormal3f(0.0f, -1.0f, 0.0f);
+        glTexCoord2f(cubeSize, cubeSize); glVertex3f(-cubeSize, -cubeSize, -cubeSize); // Top Right Of The Texture and Quad
+        glTexCoord2f(0.0f, cubeSize); glVertex3f( cubeSize, -cubeSize, -cubeSize); // Top Left Of The Texture and Quad
+        glTexCoord2f(0.0f, 0.0f); glVertex3f( cubeSize, -cubeSize, cubeSize); // Bottom Left Of The Texture and Quad
+        glTexCoord2f(cubeSize, 0.0f); glVertex3f(-cubeSize, -cubeSize, cubeSize); // Bottom Right Of The Texture and Quad
+        // Right face
+        glNormal3f(1.0f, 0.0f, 0.0f);
+        glTexCoord2f(cubeSize, 0.0f); glVertex3f( cubeSize, -cubeSize, -cubeSize); // Bottom Right Of The Texture and Quad
+        glTexCoord2f(cubeSize, cubeSize); glVertex3f( cubeSize, cubeSize, -cubeSize); // Top Right Of The Texture and Quad
+        glTexCoord2f(0.0f, cubeSize); glVertex3f( cubeSize, cubeSize, cubeSize); // Top Left Of The Texture and Quad
+        glTexCoord2f(0.0f, 0.0f); glVertex3f( cubeSize, -cubeSize, cubeSize); // Bottom Left Of The Texture and Quad
+        // Left Face
+        glNormal3f(-1.0f, 0.0f, 0.0f);
+        glTexCoord2f(0.0f, 0.0f); glVertex3f(-cubeSize, -cubeSize, -cubeSize); // Bottom Left Of The Texture and Quad
+        glTexCoord2f(cubeSize, 0.0f); glVertex3f(-cubeSize, -cubeSize, cubeSize); // Bottom Right Of The Texture and Quad
+        glTexCoord2f(cubeSize, cubeSize); glVertex3f(-cubeSize, cubeSize, cubeSize); // Top Right Of The Texture and Quad
+        glTexCoord2f(0.0f, cubeSize); glVertex3f(-cubeSize, cubeSize, -cubeSize); // Top Left Of The Texture and Quad
+        glEnd();
+    //glEndList();
 }
 
 void GLWidget::keyPressEvent(QKeyEvent *event) {
@@ -98,20 +192,14 @@ void GLWidget::keyPressEvent(QKeyEvent *event) {
             break;
 
         case Qt::Key_Up:
-            if(keyMode == 'R') { // Rotação
-                angleY -= stepRotate;
-                angleY = angleY < 0 ? angleY + 360 : angleY;
-            } else if(keyMode == 'T') { // Translação
-                posY += stepTranslate;
+            if(keyMode == 'T') { // Translação
+                posZ -= stepTranslate;
             }
             break;
 
         case Qt::Key_Down:
-            if(keyMode == 'R') { // Rotação
-                angleY += stepRotate;
-                angleY = angleY > 360 ? angleY - 360 : angleY;
-            } else if(keyMode == 'T') { // Translação
-                posY -= stepTranslate;
+            if(keyMode == 'T') { // Translação
+                posZ += stepTranslate;
             }
             break;
 
@@ -133,14 +221,6 @@ void GLWidget::keyPressEvent(QKeyEvent *event) {
             }
             break;
 
-        case Qt::Key_PageUp:
-            z += 0.05f;
-            break;
-
-        case Qt::Key_PageDown:
-            z -= 0.05f;
-            break;
-
         default:
             QGLWidget::keyPressEvent(event);
     }
@@ -151,62 +231,4 @@ void GLWidget::changeEvent(QEvent *event) {
         default:
             break;
     }
-}
-
-GLuint GLWidget::loadTexture(QString fileName) {
-    QImage img = convertToGLFormat(QImage(fileName));
-
-    // Texture using linear filter
-    GLuint textureId;
-    glGenTextures(1, &textureId); //Make room for our texture
-    glBindTexture(GL_TEXTURE_2D, textureId);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, 3, img.width(), img.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, img.bits());
-
-    return textureId;
-}
-
-// Draw a cube using OpenGL
-void GLWidget::drawCube() {
-    glBindTexture(GL_TEXTURE_2D, _textureSand);
-
-    glBegin(GL_QUADS);
-        // Front Face
-        glNormal3f(0.0f, 0.0f, 1.0f);
-        glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f, -1.0f, 1.0f); // Bottom Left Of The Texture and Quad
-        glTexCoord2f(1.0f, 0.0f); glVertex3f( 1.0f, -1.0f, 1.0f); // Bottom Right Of The Texture and Quad
-        glTexCoord2f(1.0f, 1.0f); glVertex3f( 1.0f, 1.0f, 1.0f); // Top Right Of The Texture and Quad
-        glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f, 1.0f, 1.0f); // Top Left Of The Texture and Quad
-        // Back Face
-        glNormal3f(0.0f, 0.0f, -1.0f);
-        glTexCoord2f(1.0f, 0.0f); glVertex3f(-1.0f, -1.0f, -1.0f); // Bottom Right Of The Texture and Quad
-        glTexCoord2f(1.0f, 1.0f); glVertex3f(-1.0f, 1.0f, -1.0f); // Top Right Of The Texture and Quad
-        glTexCoord2f(0.0f, 1.0f); glVertex3f( 1.0f, 1.0f, -1.0f); // Top Left Of The Texture and Quad
-        glTexCoord2f(0.0f, 0.0f); glVertex3f( 1.0f, -1.0f, -1.0f); // Bottom Left Of The Texture and Quad
-        // Top Face
-        glNormal3f(0.0f, 1.0f, 0.0f);
-        glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f, 1.0f, -1.0f); // Top Left Of The Texture and Quad
-        glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f, 1.0f, 1.0f); // Bottom Left Of The Texture and Quad
-        glTexCoord2f(1.0f, 0.0f); glVertex3f( 1.0f, 1.0f, 1.0f); // Bottom Right Of The Texture and Quad
-        glTexCoord2f(1.0f, 1.0f); glVertex3f( 1.0f, 1.0f, -1.0f); // Top Right Of The Texture and Quad
-        // Bottom Face
-        glNormal3f(0.0f, -1.0f, 0.0f);
-        glTexCoord2f(1.0f, 1.0f); glVertex3f(-1.0f, -1.0f, -1.0f); // Top Right Of The Texture and Quad
-        glTexCoord2f(0.0f, 1.0f); glVertex3f( 1.0f, -1.0f, -1.0f); // Top Left Of The Texture and Quad
-        glTexCoord2f(0.0f, 0.0f); glVertex3f( 1.0f, -1.0f, 1.0f); // Bottom Left Of The Texture and Quad
-        glTexCoord2f(1.0f, 0.0f); glVertex3f(-1.0f, -1.0f, 1.0f); // Bottom Right Of The Texture and Quad
-        // Right face
-        glNormal3f(1.0f, 0.0f, 0.0f);
-        glTexCoord2f(1.0f, 0.0f); glVertex3f( 1.0f, -1.0f, -1.0f); // Bottom Right Of The Texture and Quad
-        glTexCoord2f(1.0f, 1.0f); glVertex3f( 1.0f, 1.0f, -1.0f); // Top Right Of The Texture and Quad
-        glTexCoord2f(0.0f, 1.0f); glVertex3f( 1.0f, 1.0f, 1.0f); // Top Left Of The Texture and Quad
-        glTexCoord2f(0.0f, 0.0f); glVertex3f( 1.0f, -1.0f, 1.0f); // Bottom Left Of The Texture and Quad
-        // Left Face
-        glNormal3f(-1.0f, 0.0f, 0.0f);
-        glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f, -1.0f, -1.0f); // Bottom Left Of The Texture and Quad
-        glTexCoord2f(1.0f, 0.0f); glVertex3f(-1.0f, -1.0f, 1.0f); // Bottom Right Of The Texture and Quad
-        glTexCoord2f(1.0f, 1.0f); glVertex3f(-1.0f, 1.0f, 1.0f); // Top Right Of The Texture and Quad
-        glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f, 1.0f, -1.0f); // Top Left Of The Texture and Quad
-    glEnd();
 }
