@@ -1,4 +1,4 @@
-# OpenGL - Pyramid 3D
+# Learn - OpenGL: Pyramid 3D
 This is a repository to source code and resources used in a college project of computer engineering of Universidade Estadual de Feira de Santana - UEFS.
 
 The project is builded with C++ language and OpenGL API. The goal of project is build a pyramid with cubes, like Minicraft Game.
